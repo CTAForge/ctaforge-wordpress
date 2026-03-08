@@ -1,71 +1,125 @@
-# CTAForge WordPress Plugin
+# CTAForge — WordPress Plugin
 
-Official WordPress plugin for [CTAForge](https://ctaforge.com) — connect your WordPress site to CTAForge and grow your email list.
+Conecte seu site WordPress ao [CTAForge](https://ctaforge.com) e transforme visitantes em contatos de email marketing — com formulários de captura, sincronização automática e integração completa com WooCommerce.
 
-[![CI](https://github.com/CTAForge/ctaforge-wordpress/actions/workflows/ci.yml/badge.svg)](https://github.com/CTAForge/ctaforge-wordpress/actions/workflows/ci.yml)
-[![WordPress.org version](https://img.shields.io/wordpress/plugin/v/ctaforge)](https://wordpress.org/plugins/ctaforge/)
-[![PHP](https://img.shields.io/badge/PHP-8.0%2B-blue)](https://www.php.net/)
-[![License](https://img.shields.io/badge/license-GPL--2.0%2B-green)](LICENSE)
+---
 
-## Features
+## ⚡ Instalação rápida
 
-- **[ctaforge_form] shortcode** — drop signup forms anywhere on your site
-- **Gutenberg block** — native block with full sidebar controls
-- **WordPress user sync** — auto-subscribe new registrations to a list
-- **WooCommerce integration** — sync customers and tag by purchase behaviour
+### Opção 1 — WordPress.org (recomendado)
 
-## Installation (Development)
+1. No painel do WordPress, acesse **Plugins → Adicionar novo**
+2. Busque por **CTAForge**
+3. Clique em **Instalar agora** → **Ativar**
 
-```bash
-# Clone into your local WordPress install
-cd wp-content/plugins
-git clone https://github.com/CTAForge/ctaforge-wordpress.git ctaforge
-cd ctaforge/trunk
-composer install
-```
+### Opção 2 — Upload manual (ZIP)
 
-Activate from **Plugins → Installed Plugins**, then go to **Settings → CTAForge**.
+1. Baixe o arquivo `ctaforge.zip` da [última versão](https://github.com/CTAForge/ctaforge-wordpress/releases/latest)
+2. No painel do WordPress, acesse **Plugins → Adicionar novo → Enviar plugin**
+3. Selecione o arquivo `.zip` baixado e clique em **Instalar agora**
+4. Clique em **Ativar plugin**
 
-## Shortcode Usage
+---
 
-```
-[ctaforge_form list_id="your-list-uuid"]
-[ctaforge_form list_id="uuid" fields="first_name,last_name" button="Join the list" title="Weekly newsletter"]
-```
+## 🔑 Configuração
 
-## Release Process
+Após ativar o plugin:
 
-1. Bump version in `trunk/ctaforge.php` (plugin header) and `trunk/readme.txt` (Stable tag)
-2. Commit and push to `main`
-3. Push a version tag: `git tag v1.0.1 && git push origin v1.0.1`
-4. GitHub Actions automatically syncs `trunk/` → WordPress.org SVN
+1. Acesse **Configurações → CTAForge** no painel do WordPress
+2. No CTAForge, vá em **Configurações → Integrações → + Nova integração WordPress**
+3. Copie a chave API gerada (ela aparece apenas uma vez)
+4. Cole a chave no campo **API Key** e clique em **Test Connection**
+5. Se a conexão for bem-sucedida, selecione a **Lista padrão** e salve
 
-> **Requires:** `WP_SVN_USERNAME` and `WP_SVN_PASSWORD` stored as GitHub Actions secrets.
+---
 
-## WordPress.org SVN
+## 📋 Formulário de captura
 
-The plugin slug is `ctaforge`. SVN structure is managed automatically by CI:
+Adicione um formulário de inscrição em qualquer página, post ou widget usando o shortcode:
 
 ```
-svn.wp-plugins.org/ctaforge/
-├── trunk/         ← mirrors this repo's trunk/
-├── tags/
-│   └── 1.0.0/    ← created per release
-└── assets/       ← screenshots and banner (mirrors assets/ in this repo)
+[ctaforge_form]
 ```
 
-## Contributing
+### Exemplos
 
-Pull requests welcome. Please follow [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/).
-
-```bash
-# Check coding standards
-cd trunk && composer lint
-
-# Run tests
-composer test
+Formulário básico (usa a lista padrão configurada):
+```
+[ctaforge_form]
 ```
 
-## License
+Com título e lista específica:
+```
+[ctaforge_form list_id="SEU-UUID-AQUI" title="Receba novidades semanais" button="Quero me inscrever!"]
+```
 
-GPL v2 or later — see [LICENSE](LICENSE).
+Com campos de nome:
+```
+[ctaforge_form fields="first_name,last_name" title="Fique por dentro"]
+```
+
+### Parâmetros disponíveis
+
+| Parâmetro     | Descrição                                              | Padrão                        |
+|---------------|--------------------------------------------------------|-------------------------------|
+| `list_id`     | UUID da lista no CTAForge                              | Lista padrão das configurações |
+| `title`       | Título exibido acima do formulário                     | "Subscribe to our newsletter" |
+| `description` | Subtítulo opcional                                     | —                             |
+| `button`      | Texto do botão de envio                                | "Subscribe"                   |
+| `placeholder` | Placeholder do campo de email                          | "Your email address"          |
+| `fields`      | Campos extras: `first_name`, `last_name`               | —                             |
+| `success`     | Mensagem exibida após inscrição bem-sucedida           | "Thank you for subscribing!"  |
+| `error`       | Mensagem exibida em caso de erro                       | "Something went wrong."       |
+| `class`       | Classes CSS extras para o wrapper do formulário        | —                             |
+
+---
+
+## 🧱 Bloco Gutenberg
+
+O plugin adiciona o bloco **CTAForge Signup Form** na categoria Widgets do editor de blocos.
+
+- Arraste o bloco para qualquer posição na página
+- Configure título, botão e lista na barra lateral direita
+- A pré-visualização é exibida diretamente no editor
+
+---
+
+## 🛒 Integração com WooCommerce
+
+Quando o WooCommerce está instalado, o CTAForge detecta automaticamente e ativa recursos adicionais:
+
+| Evento                  | O que acontece no CTAForge                                  |
+|-------------------------|-------------------------------------------------------------|
+| Pedido realizado        | Contato adicionado à lista com a tag `woocommerce-customer` |
+| Pedido concluído        | Tag `woocommerce-purchased` adicionada ao contato           |
+| Pedido reembolsado      | Tag `woocommerce-refunded` adicionada ao contato            |
+
+Todos os eventos ficam visíveis na **linha do tempo do contato** no CTAForge, permitindo segmentação avançada.
+
+---
+
+## 👤 Sincronização de usuários
+
+Ative a opção **Sincronizar usuários WordPress** em Configurações para adicionar automaticamente novos usuários registrados à lista padrão.
+
+---
+
+## ❓ Perguntas frequentes
+
+**Onde encontro minha chave API?**
+No CTAForge: Configurações → Integrações → crie uma nova integração WordPress.
+
+**O plugin funciona sem WooCommerce?**
+Sim — formulários e sincronização de usuários funcionam normalmente. Os recursos de WooCommerce são ativados apenas quando o plugin está instalado.
+
+**Posso usar múltiplos formulários na mesma página?**
+Sim — cada shortcode `[ctaforge_form]` é independente e pode apontar para listas diferentes.
+
+**O plugin é compatível com construtores de página?**
+Sim — funciona com Elementor, Beaver Builder, Divi e qualquer construtor que suporte shortcodes WordPress.
+
+---
+
+## 📄 Licença
+
+GPL v2 ou superior — veja [LICENSE](LICENSE).
