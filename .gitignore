@@ -1,0 +1,22 @@
+# Dependencies
+trunk/vendor/
+trunk/node_modules/
+
+# Build artifacts
+trunk/assets/js/block/index.asset.php
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# WordPress test suite (local)
+/tmp/wordpress/
+/tmp/wordpress-tests-lib/
+
+# Composer lock (not committed for plugins — only for apps)
+trunk/composer.lock

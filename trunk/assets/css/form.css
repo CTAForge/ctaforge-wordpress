@@ -1,0 +1,123 @@
+/* CTAForge — Signup Form Styles
+ * Minimal, theme-agnostic styles.
+ * Override with your theme's CSS or the block's "Additional CSS class" field.
+ */
+
+.ctaforge-form-wrap {
+	max-width: 480px;
+	padding: 2rem;
+	border: 1px solid #e5e7eb;
+	border-radius: 8px;
+	background: #fff;
+	font-family: inherit;
+}
+
+.ctaforge-form-title {
+	margin: 0 0 0.5rem;
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: #111;
+}
+
+.ctaforge-form-desc {
+	margin: 0 0 1.25rem;
+	color: #555;
+	font-size: 0.925rem;
+}
+
+.ctaforge-form .ctaforge-field {
+	margin-bottom: 1rem;
+}
+
+.ctaforge-form label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #374151;
+}
+
+.ctaforge-form input[type="email"],
+.ctaforge-form input[type="text"] {
+	width: 100%;
+	padding: 0.625rem 0.875rem;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	font-size: 0.95rem;
+	color: #111;
+	background: #f9fafb;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ctaforge-form input:focus {
+	outline: none;
+	border-color: #6366f1;
+	box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+	background: #fff;
+}
+
+.ctaforge-submit {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.65rem 1.5rem;
+	background: #6366f1;
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	font-size: 0.95rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.15s ease, opacity 0.15s ease;
+	width: 100%;
+	margin-top: 0.25rem;
+}
+
+.ctaforge-submit:hover:not(:disabled) {
+	background: #4f46e5;
+}
+
+.ctaforge-submit:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+/* Messages */
+.ctaforge-message {
+	margin-top: 0.75rem;
+	padding: 0.6rem 0.875rem;
+	border-radius: 6px;
+	font-size: 0.875rem;
+	display: none;
+}
+
+.ctaforge-message:not(:empty) {
+	display: block;
+}
+
+.ctaforge-message.ctaforge-error {
+	background: #fef2f2;
+	color: #b91c1c;
+	border: 1px solid #fecaca;
+}
+
+.ctaforge-success-message {
+	padding: 1rem;
+	text-align: center;
+	color: #065f46;
+	background: #ecfdf5;
+	border: 1px solid #6ee7b7;
+	border-radius: 6px;
+	font-weight: 500;
+}
+
+/* Admin notice */
+.ctaforge-notice {
+	padding: 0.5rem 0.75rem;
+	background: #fffbeb;
+	border-left: 4px solid #f59e0b;
+	color: #92400e;
+	font-size: 0.875rem;
+}
