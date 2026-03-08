@@ -18,6 +18,11 @@ class Settings {
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+
+		// Test Connection AJAX — authenticated (admin only, server-side only).
+		// The API key never travels from the server to the browser;
+		// the test is executed entirely in PHP and only the result is returned.
+		add_action( 'wp_ajax_ctaforge_test_connection', [ $this, 'handle_test_connection' ] );
 	}
 
 	/**
@@ -193,6 +198,60 @@ class Settings {
 	}
 
 	/**
+	 * Handles the "Test Connection" AJAX request.
+	 *
+	 * Security model:
+	 * - `wp_ajax_` prefix means this only runs for logged-in users
+	 * - nonce verification (ctaforge_test_connection, bound to user session)
+	 * - capability check (manage_options)
+	 * - API key is NEVER sent to the browser — it is read from wp_options on
+	 *   the server, used to call the CTAForge API, and only the result (ok/fail)
+	 *   is returned to the browser as JSON
+	 * - The API key field in the form is type="password" so it is not echoed
+	 *   back in the JS response
+	 */
+	public function handle_test_connection(): void {
+		// 1. Verify the nonce (CSRF protection, tied to the current WP session).
+		check_ajax_referer( 'ctaforge_test_connection', '_wpnonce' );
+
+		// 2. Capability gate — only admins can test the connection.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'ctaforge' ) ], 403 );
+		}
+
+		// 3. Read the API key from wp_options (server-side only — never from $_POST).
+		//    This means even if someone forges the AJAX request, they cannot
+		//    substitute a different key to probe the API.
+		$settings = get_option( self::OPTION_KEY, [] );
+		$api_key  = $settings['api_key'] ?? '';
+		$api_url  = $settings['api_url'] ?? CTAFORGE_API_DEFAULT;
+
+		if ( empty( $api_key ) ) {
+			wp_send_json_error( [ 'message' => __( 'No API key configured. Save your settings first.', 'ctaforge' ) ], 422 );
+		}
+
+		// 4. Execute a lightweight introspection query to validate the key.
+		//    Uses the same Client that all API calls go through.
+		$client = new \CTAForge\Api\Client( $api_key, $api_url );
+		$result = $client->query(
+			'query Ping { me { id email } }',
+		);
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				[ 'message' => $result->get_error_message() ],
+				401
+			);
+		}
+
+		// 5. Return only the tenant/user info (no key echoed back).
+		wp_send_json_success( [
+			'message' => __( 'Connection successful!', 'ctaforge' ),
+			'user'    => $result['me'] ?? null,
+		] );
+	}
+
+	/**
 	 * Renders the full settings page.
 	 */
 	public function render_page(): void {
@@ -233,11 +292,15 @@ class Settings {
 
 		wp_localize_script( 'ctaforge-admin', 'ctaforgeAdmin', [
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			// Nonce bound to current user session (CSRF protection).
+			// The API key is NOT included here — it stays server-side.
 			'nonce'   => wp_create_nonce( 'ctaforge_test_connection' ),
 			'i18n'    => [
 				'testing'    => __( 'Testing…', 'ctaforge' ),
+				'testBtn'    => __( 'Test Connection', 'ctaforge' ),
 				'connected'  => __( '✅ Connected', 'ctaforge' ),
 				'error'      => __( '❌ Connection failed', 'ctaforge' ),
+				'saveFirst'  => __( '⚠️ Save your settings before testing.', 'ctaforge' ),
 			],
 		] );
 	}
