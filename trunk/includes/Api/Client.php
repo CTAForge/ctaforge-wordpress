@@ -97,30 +97,104 @@ class Client {
 	// ─── Audience helpers ────────────────────────────────────────────────────────
 
 	/**
-	 * Subscribes a contact to a list.
+	 * Creates or updates a contact and subscribes them to a list.
+	 *
+	 * Uses the `upsertContact` GraphQL mutation — existing contacts are merged,
+	 * new contacts are created. Safe to call on every form submission.
 	 *
 	 * @param  string $email    Contact email address.
 	 * @param  string $list_id  UUID of the CTAForge list.
-	 * @param  array  $fields   Extra fields: first_name, last_name, custom_fields…
-	 * @return array|WP_Error
+	 * @param  array  $fields   Optional: firstName, lastName, tags[], customFields{}.
+	 * @return array|WP_Error   { id, email, status, created } on success.
 	 */
 	public function subscribe( string $email, string $list_id, array $fields = [] ): array|WP_Error {
 		$mutation = '
-			mutation Subscribe($input: UpsertContactInput!) {
+			mutation UpsertContact($input: UpsertContactInput!) {
 				upsertContact(input: $input) {
 					id
 					email
 					status
+					created
 				}
 			}
 		';
 
-		return $this->query( $mutation, [
-			'input' => array_merge(
-				[ 'email' => $email, 'listId' => $list_id ],
-				$fields
-			),
-		] );
+		$variables = array_merge(
+			[
+				'email'  => $email,
+				'listId' => $list_id,
+				'source' => 'wordpress',
+			],
+			$fields
+		);
+
+		$result = $this->query( $mutation, [ 'input' => $variables ] );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $result['upsertContact'] ?? [];
+	}
+
+	/**
+	 * Records a behavioral event for a contact in CTAForge.
+	 *
+	 * This is how the WordPress plugin tells CTAForge "this contact did X":
+	 *   - Filled in a form  → event_type: 'form_submitted'
+	 *   - Placed an order   → event_type: 'purchase',       props: { order_id, amount, currency }
+	 *   - Order completed   → event_type: 'order_completed', props: { order_id }
+	 *   - Order refunded    → event_type: 'refund',          props: { order_id, amount }
+	 *   - User registered   → event_type: 'user_registered', props: { wp_user_id }
+	 *
+	 * Events surface in the contact activity timeline and can be used
+	 * for segmentation and automation triggers.
+	 *
+	 * @param  string        $email       Contact email address.
+	 * @param  string        $event_type  Event type slug.
+	 * @param  array         $properties  Arbitrary event properties (key-value).
+	 * @param  string        $source      Source system (defaults to 'wordpress').
+	 * @param  DateTime|null $occurred_at Optional; defaults to now.
+	 * @return array|WP_Error             { id, contactEmail, eventType, occurredAt } on success.
+	 */
+	public function track_event(
+		string $email,
+		string $event_type,
+		array $properties = [],
+		string $source = 'wordpress',
+		?\DateTime $occurred_at = null
+	): array|WP_Error {
+		$mutation = '
+			mutation TrackContactEvent($input: TrackContactEventInput!) {
+				trackContactEvent(input: $input) {
+					id
+					contactEmail
+					eventType
+					source
+					properties
+					occurredAt
+				}
+			}
+		';
+
+		$variables = [
+			'contactEmail' => $email,
+			'eventType'    => $event_type,
+			'source'       => $source,
+			'properties'   => empty( $properties ) ? new \stdClass() : $properties,
+		];
+
+		if ( null !== $occurred_at ) {
+			$variables['occurredAt'] = $occurred_at->format( \DateTime::RFC3339 );
+		}
+
+		$result = $this->query( $mutation, [ 'input' => $variables ] );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $result['trackContactEvent'] ?? [];
 	}
 
 	/**

@@ -39,7 +39,8 @@ class UserSync {
 		}
 
 		$client = \CTAForge\Api\Client::make();
-		$client->subscribe(
+
+		$subscribe_result = $client->subscribe(
 			$user->user_email,
 			$list_id,
 			[
@@ -48,7 +49,21 @@ class UserSync {
 				'tags'      => [ 'wordpress-user' ],
 			]
 		);
-		// We deliberately ignore errors here — user registration must not fail
+
+		// Only track the event if subscribe succeeded.
+		if ( ! is_wp_error( $subscribe_result ) ) {
+			$client->track_event(
+				$user->user_email,
+				'user_registered',
+				[
+					'wp_user_id'   => $user_id,
+					'display_name' => $user->display_name,
+					'roles'        => (array) $user->roles,
+					'site_url'     => get_site_url(),
+				]
+			);
+		}
+		// We deliberately ignore all errors — user registration must not fail
 		// if CTAForge is unreachable.
 	}
 }

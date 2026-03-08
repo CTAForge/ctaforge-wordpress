@@ -175,6 +175,19 @@ class Shortcode {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ], 500 );
 		}
 
+		// Track the form_submitted event so the activity appears
+		// in the contact's timeline in CTAForge.
+		$client->track_event(
+			$email,
+			'form_submitted',
+			[
+				'list_id'  => $list_id,
+				'page_url' => wp_get_referer() ?: '',
+				'source'   => 'shortcode',
+			]
+		);
+		// Ignore track_event errors — subscription already succeeded.
+
 		wp_send_json_success( [ 'contact' => $result ] );
 	}
 
