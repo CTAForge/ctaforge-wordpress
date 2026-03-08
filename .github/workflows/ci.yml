@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: PHP Lint & PHPCS
+  php-lint:
+    name: PHP Syntax (${{ matrix.php }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -22,46 +22,116 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          tools: phpcs
 
+      # php -l exits 0 on success, non-zero on syntax error.
+      # We iterate each file and fail immediately on any error.
       - name: Check PHP syntax
-        run: find trunk -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
-
-      - name: Install WordPress Coding Standards
         run: |
-          composer global require wp-coding-standards/wpcs dealerdirect/phpcodesniffer-composer-installer
-          phpcs --version
+          find trunk -name "*.php" | while IFS= read -r file; do
+            php -l "$file" || exit 1
+          done
+          echo "✅ All PHP files have valid syntax"
 
-      - name: Run PHPCS (WordPress standard)
-        run: phpcs --standard=WordPress trunk/ --extensions=php --report=summary
-
-  compatibility:
-    name: PHP Compatibility Check
+  phpcs:
+    name: PHPCS (WordPress Standard)
     runs-on: ubuntu-latest
-
+    # Run only on PHP 8.2 for PHPCS — no need to repeat across all versions
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-          tools: phpcs
+          tools: composer
+
+      - name: Install PHPCS + WordPress Coding Standards
+        run: |
+          composer global require --no-interaction \
+            squizlabs/php_codesniffer \
+            wp-coding-standards/wpcs \
+            dealerdirect/phpcodesniffer-composer-installer
+          phpcs --version
+
+      - name: Run PHPCS
+        run: |
+          ~/.composer/vendor/bin/phpcs \
+            --standard=WordPress \
+            --extensions=php \
+            --ignore=trunk/vendor \
+            --report=summary \
+            trunk/
+
+  php-compatibility:
+    name: PHP Compatibility (8.0+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+
+      - name: Install PHPCompatibility
+        run: |
+          composer global require --no-interaction \
+            phpcompatibility/php-compatibility \
+            dealerdirect/phpcodesniffer-composer-installer
+          ~/.composer/vendor/bin/phpcs --config-show
 
       - name: Check PHP 8.0+ compatibility
         run: |
-          composer global require phpcompatibility/php-compatibility
-          phpcs --standard=PHPCompatibility --runtime-set testVersion 8.0- trunk/
+          ~/.composer/vendor/bin/phpcs \
+            --standard=PHPCompatibility \
+            --runtime-set testVersion 8.0- \
+            --extensions=php \
+            --ignore=trunk/vendor \
+            trunk/
 
   readme-check:
     name: readme.txt Validation
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
+      # WordPress.org readme uses === Plugin Name === header (not "Plugin Name: ...")
+      # We check for the fields that actually appear in the WP readme format.
       - name: Check required readme.txt fields
         run: |
-          for field in "Plugin Name" "Requires at least" "Tested up to" "Stable tag" "License"; do
-            grep -q "$field" trunk/readme.txt || { echo "❌ Missing: $field"; exit 1; }
-          done
+          file="trunk/readme.txt"
+          fail=0
+
+          check() {
+            if ! grep -q "$1" "$file"; then
+              echo "❌ Missing: $1"
+              fail=1
+            fi
+          }
+
+          # === Plugin Name === header
+          check "^==="
+          # Required WP readme fields
+          check "Requires at least:"
+          check "Tested up to:"
+          check "Stable tag:"
+          check "License:"
+          check "== Description =="
+          check "== Changelog =="
+
+          if [ "$fail" -eq 1 ]; then exit 1; fi
           echo "✅ readme.txt looks good"
+
+  js-test:
+    name: JS/TS Build (Block Editor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Future: npm ci + npm test when package.json is added to the plugin
+      - name: Check block JS exists
+        run: |
+          test -f trunk/assets/js/block/index.js && echo "✅ Block editor JS present"

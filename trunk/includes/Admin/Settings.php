@@ -90,8 +90,9 @@ class Settings {
 
 	/** Renders the API key input. */
 	public function field_api_key(): void {
-		$settings = get_option( self::OPTION_KEY, [] );
-		$value    = $settings['api_key'] ?? '';
+		$settings       = get_option( self::OPTION_KEY, [] );
+		$value          = $settings['api_key'] ?? '';
+		$integration_id = $settings['integration_id'] ?? '';
 		?>
 		<input
 			type="password"
@@ -100,8 +101,15 @@ class Settings {
 			value="<?php echo esc_attr( $value ); ?>"
 			class="regular-text"
 			autocomplete="off"
-			placeholder="ctaf_…"
+			placeholder="ctaf_wp_…"
 		/>
+		<?php if ( ! empty( $integration_id ) ) : ?>
+			<input
+				type="hidden"
+				name="<?php echo esc_attr( self::OPTION_KEY ); ?>[integration_id]"
+				value="<?php echo esc_attr( $integration_id ); ?>"
+			/>
+		<?php endif; ?>
 		<button type="button" class="button ctaforge-test-connection" data-nonce="<?php echo esc_attr( wp_create_nonce( 'ctaforge_test_connection' ) ); ?>">
 			<?php esc_html_e( 'Test Connection', 'ctaforge' ); ?>
 		</button>
@@ -189,11 +197,34 @@ class Settings {
 	 * @return array        Sanitized settings.
 	 */
 	public function sanitize( array $input ): array {
+		// Preserve integration_id if already set (not user-editable directly)
+		$existing = get_option( self::OPTION_KEY, [] );
 		return [
-			'api_key'      => sanitize_text_field( $input['api_key'] ?? '' ),
-			'api_url'      => esc_url_raw( $input['api_url'] ?? CTAFORGE_API_DEFAULT ) ?: CTAFORGE_API_DEFAULT,
-			'default_list' => sanitize_text_field( $input['default_list'] ?? '' ),
-			'sync_users'   => ( '1' === ( $input['sync_users'] ?? '0' ) ) ? '1' : '0',
+			'api_key'        => sanitize_text_field( $input['api_key'] ?? '' ),
+			'api_url'        => esc_url_raw( $input['api_url'] ?? CTAFORGE_API_DEFAULT ) ?: CTAFORGE_API_DEFAULT,
+			'default_list'   => sanitize_text_field( $input['default_list'] ?? '' ),
+			'sync_users'     => ( '1' === ( $input['sync_users'] ?? '0' ) ) ? '1' : '0',
+			'integration_id' => sanitize_text_field( $input['integration_id'] ?? $existing['integration_id'] ?? '' ),
+		];
+	}
+
+	/**
+	 * Returns capabilities of this WordPress installation.
+	 * Sent to CTAForge so the dashboard knows what features are available.
+	 *
+	 * @return array
+	 */
+	private function get_capabilities(): array {
+		global $wp_version;
+		return [
+			'has_woocommerce' => class_exists( 'WooCommerce' ),
+			'wc_version'      => class_exists( 'WooCommerce' ) ? WC()->version : null,
+			'wp_version'      => $wp_version,
+			'plugin_version'  => CTAFORGE_VERSION,
+			'site_url'        => get_site_url(),
+			'site_name'       => get_bloginfo( 'name' ),
+			'locale'          => get_locale(),
+			'multisite'       => is_multisite(),
 		];
 	}
 
@@ -244,7 +275,27 @@ class Settings {
 			);
 		}
 
-		// 5. Return only the tenant/user info (no key echoed back).
+		// 5. Report capabilities so CTAForge dashboard can show relevant data.
+		$settings        = get_option( self::OPTION_KEY, [] );
+		$integration_id  = $settings['integration_id'] ?? '';
+
+		if ( ! empty( $integration_id ) ) {
+			$client->query(
+				'
+				mutation ReportCapabilities($input: ReportCapabilitiesInput!) {
+					reportCapabilities(input: $input) { id status }
+				}',
+				[
+					'input' => [
+						'integrationId'  => $integration_id,
+						'capabilities'   => $this->get_capabilities(),
+						'pluginVersion'  => CTAFORGE_VERSION,
+					],
+				]
+			);
+		}
+
+		// 6. Return only the tenant/user info (no key echoed back).
 		wp_send_json_success( [
 			'message' => __( 'Connection successful!', 'ctaforge' ),
 			'user'    => $result['me'] ?? null,
