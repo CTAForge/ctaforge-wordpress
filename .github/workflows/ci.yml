@@ -46,11 +46,13 @@ jobs:
 
       - name: Install PHPCS + WordPress Coding Standards
         run: |
+          # Allow the phpcodesniffer-composer-installer plugin before requiring packages
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
           composer global require --no-interaction \
             squizlabs/php_codesniffer \
             wp-coding-standards/wpcs \
             dealerdirect/phpcodesniffer-composer-installer
-          phpcs --version
+          ~/.composer/vendor/bin/phpcs --version
 
       - name: Run PHPCS
         run: |
@@ -74,6 +76,7 @@ jobs:
 
       - name: Install PHPCompatibility
         run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
           composer global require --no-interaction \
             phpcompatibility/php-compatibility \
             dealerdirect/phpcodesniffer-composer-installer
