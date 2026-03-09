@@ -28,21 +28,23 @@ define( 'CTAFORGE_PLUGIN_FILE', __FILE__ );
 define( 'CTAFORGE_API_DEFAULT', 'https://api.ctaforge.com/graphql' );
 
 // ─── Autoloader ────────────────────────────────────────────────────────────────
-spl_autoload_register( function ( string $class ): void {
-	$prefix = 'CTAForge\\';
-	$base   = CTAFORGE_PLUGIN_DIR . 'includes/';
+spl_autoload_register(
+	function ( string $classname ): void {
+		$prefix = 'CTAForge\\';
+		$base   = CTAFORGE_PLUGIN_DIR . 'includes/';
 
-	if ( strncmp( $class, $prefix, strlen( $prefix ) ) !== 0 ) {
-		return;
+		if ( strncmp( $classname, $prefix, strlen( $prefix ) ) !== 0 ) {
+				return;
+		}
+
+		$relative = str_replace( '\\', '/', substr( $classname, strlen( $prefix ) ) );
+		$file     = $base . $relative . '.php';
+
+		if ( is_readable( $file ) ) {
+			require $file;
+		}
 	}
-
-	$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
-	$file     = $base . $relative . '.php';
-
-	if ( is_readable( $file ) ) {
-		require $file;
-	}
-} );
+);
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────────
 /**
@@ -55,5 +57,5 @@ function ctaforge(): \CTAForge\Plugin {
 ctaforge();
 
 // ─── Activation / Deactivation hooks ─────────────────────────────────────────
-register_activation_hook( __FILE__, [ 'CTAForge\\Installer', 'activate' ] );
-register_deactivation_hook( __FILE__, [ 'CTAForge\\Installer', 'deactivate' ] );
+register_activation_hook( __FILE__, array( 'CTAForge\\Installer', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'CTAForge\\Installer', 'deactivate' ) );

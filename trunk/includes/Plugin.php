@@ -12,7 +12,11 @@ namespace CTAForge;
  */
 final class Plugin {
 
-	/** @var self|null */
+	/**
+	 * Singleton instance.
+	 *
+	 * @var self|null
+	 */
 	private static ?self $instance = null;
 
 	/** Private constructor — use instance(). */

@@ -20,10 +20,13 @@ use CTAForge\Api\Client;
  */
 class OrderSync {
 
+	/**
+	 * Constructor — registers WordPress hooks.
+	 */
 	public function __construct() {
-		add_action( 'woocommerce_checkout_order_created', [ $this, 'on_order_created' ] );
-		add_action( 'woocommerce_order_status_completed',  [ $this, 'on_order_completed' ] );
-		add_action( 'woocommerce_order_status_refunded',   [ $this, 'on_order_refunded' ] );
+		add_action( 'woocommerce_checkout_order_created', array( $this, 'on_order_created' ) );
+		add_action( 'woocommerce_order_status_completed', array( $this, 'on_order_completed' ) );
+		add_action( 'woocommerce_order_status_refunded', array( $this, 'on_order_refunded' ) );
 	}
 
 	// ─── Checkout ────────────────────────────────────────────────────────────
@@ -33,7 +36,7 @@ class OrderSync {
 	 *
 	 * Syncs the contact and records a `purchase` event with full order details.
 	 *
-	 * @param \WC_Order $order
+	 * @param \WC_Order $order WooCommerce order object.
 	 */
 	public function on_order_created( \WC_Order $order ): void {
 		$email = $order->get_billing_email();
@@ -41,7 +44,7 @@ class OrderSync {
 			return;
 		}
 
-		$settings = get_option( 'ctaforge_settings', [] );
+		$settings = get_option( 'ctaforge_settings', array() );
 		$list_id  = $settings['default_list'] ?? '';
 
 		$client = Client::make();
@@ -51,15 +54,15 @@ class OrderSync {
 			$client->subscribe(
 				$email,
 				$list_id,
-				[
-					'firstName' => $order->get_billing_first_name(),
-					'lastName'  => $order->get_billing_last_name(),
-					'tags'      => [ 'woocommerce-customer' ],
-					'customFields' => [
+				array(
+					'firstName'    => $order->get_billing_first_name(),
+					'lastName'     => $order->get_billing_last_name(),
+					'tags'         => array( 'woocommerce-customer' ),
+					'customFields' => array(
 						'billing_country' => $order->get_billing_country(),
 						'billing_city'    => $order->get_billing_city(),
-					],
-				]
+					),
+				)
 			);
 		}
 
@@ -67,17 +70,17 @@ class OrderSync {
 		$client->track_event(
 			$email,
 			'purchase',
-			[
-				'order_id'     => $order->get_id(),
-				'order_number' => $order->get_order_number(),
-				'amount'       => $order->get_total(),
-				'currency'     => $order->get_currency(),
-				'status'       => $order->get_status(),
+			array(
+				'order_id'       => $order->get_id(),
+				'order_number'   => $order->get_order_number(),
+				'amount'         => $order->get_total(),
+				'currency'       => $order->get_currency(),
+				'status'         => $order->get_status(),
 				'payment_method' => $order->get_payment_method_title(),
-				'items'        => $this->get_order_items_summary( $order ),
-				'coupon_codes' => $order->get_coupon_codes(),
-				'site_url'     => get_site_url(),
-			],
+				'items'          => $this->get_order_items_summary( $order ),
+				'coupon_codes'   => $order->get_coupon_codes(),
+				'site_url'       => get_site_url(),
+			),
 			'woocommerce'
 		);
 	}
@@ -87,7 +90,7 @@ class OrderSync {
 	/**
 	 * Fires when an order status changes to "completed".
 	 *
-	 * @param int $order_id
+	 * @param int $order_id WooCommerce order ID.
 	 */
 	public function on_order_completed( int $order_id ): void {
 		$order = wc_get_order( $order_id );
@@ -103,24 +106,28 @@ class OrderSync {
 		$client = Client::make();
 
 		// 1. Tag the contact as a verified buyer.
-		$settings = get_option( 'ctaforge_settings', [] );
+		$settings = get_option( 'ctaforge_settings', array() );
 		if ( ! empty( $settings['default_list'] ) ) {
-			$client->subscribe( $email, $settings['default_list'], [
-				'tags' => [ 'woocommerce-purchased' ],
-			] );
+			$client->subscribe(
+				$email,
+				$settings['default_list'],
+				array(
+					'tags' => array( 'woocommerce-purchased' ),
+				)
+			);
 		}
 
 		// 2. Track order_completed event.
 		$client->track_event(
 			$email,
 			'order_completed',
-			[
+			array(
 				'order_id'     => $order->get_id(),
 				'order_number' => $order->get_order_number(),
 				'amount'       => $order->get_total(),
 				'currency'     => $order->get_currency(),
 				'items'        => $this->get_order_items_summary( $order ),
-			],
+			),
 			'woocommerce'
 		);
 	}
@@ -130,7 +137,7 @@ class OrderSync {
 	/**
 	 * Fires when an order is refunded.
 	 *
-	 * @param int $order_id
+	 * @param int $order_id WooCommerce order ID.
 	 */
 	public function on_order_refunded( int $order_id ): void {
 		$order = wc_get_order( $order_id );
@@ -146,11 +153,15 @@ class OrderSync {
 		$client = Client::make();
 
 		// 1. Tag the contact as refunded.
-		$settings = get_option( 'ctaforge_settings', [] );
+		$settings = get_option( 'ctaforge_settings', array() );
 		if ( ! empty( $settings['default_list'] ) ) {
-			$client->subscribe( $email, $settings['default_list'], [
-				'tags' => [ 'woocommerce-refunded' ],
-			] );
+			$client->subscribe(
+				$email,
+				$settings['default_list'],
+				array(
+					'tags' => array( 'woocommerce-refunded' ),
+				)
+			);
 		}
 
 		// 2. Track refund event.
@@ -164,13 +175,13 @@ class OrderSync {
 		$client->track_event(
 			$email,
 			'refund',
-			[
-				'order_id'     => $order->get_id(),
-				'order_number' => $order->get_order_number(),
+			array(
+				'order_id'      => $order->get_id(),
+				'order_number'  => $order->get_order_number(),
 				'refund_amount' => $refund_total,
-				'currency'     => $order->get_currency(),
-				'order_total'  => $order->get_total(),
-			],
+				'currency'      => $order->get_currency(),
+				'order_total'   => $order->get_total(),
+			),
 			'woocommerce'
 		);
 	}
@@ -179,22 +190,24 @@ class OrderSync {
 
 	/**
 	 * Returns a compact array of items for event properties.
+	 * Returns a simplified item summary for tracking payloads.
+	 *
 	 * Avoids sending excessive data — just name, sku, qty, price.
 	 *
-	 * @param  \WC_Order $order
+	 * @param  \WC_Order $order WooCommerce order object.
 	 * @return array
 	 */
 	private function get_order_items_summary( \WC_Order $order ): array {
-		$items = [];
+		$items = array();
 		foreach ( $order->get_items() as $item ) {
-			/** @var \WC_Order_Item_Product $item */
+			/* @var \WC_Order_Item_Product $item */
 			$product = $item->get_product();
-			$items[] = [
+			$items[] = array(
 				'name'     => $item->get_name(),
 				'sku'      => $product ? $product->get_sku() : '',
 				'quantity' => $item->get_quantity(),
 				'total'    => $item->get_total(),
-			];
+			);
 		}
 		return $items;
 	}

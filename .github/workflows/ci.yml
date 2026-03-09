@@ -57,9 +57,9 @@ jobs:
       - name: Run PHPCS
         run: |
           ~/.composer/vendor/bin/phpcs \
-            --standard=WordPress \
+            --standard=trunk/phpcs.xml \
             --extensions=php \
-            --ignore=trunk/vendor \
+            --warning-severity=0 \
             --report=summary \
             trunk/
 

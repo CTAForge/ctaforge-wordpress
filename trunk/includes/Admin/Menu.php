@@ -12,8 +12,11 @@ namespace CTAForge\Admin;
  */
 class Menu {
 
+	/**
+	 * Constructor — registers WordPress hooks.
+	 */
 	public function __construct() {
-		add_action( 'admin_menu', [ $this, 'register_menu' ] );
+		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 	}
 
 	/**
@@ -25,7 +28,7 @@ class Menu {
 			__( 'CTAForge', 'ctaforge' ),
 			'manage_options',
 			'ctaforge',
-			[ new Settings(), 'render_page' ]
+			array( new Settings(), 'render_page' )
 		);
 	}
 }

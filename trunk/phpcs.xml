@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ruleset name="CTAForge">
+    <description>CTAForge WordPress Plugin coding standards.</description>
+
+    <file>.</file>
+    <exclude-pattern>vendor/*</exclude-pattern>
+
+    <rule ref="WordPress">
+        <!--
+            File naming convention (PascalCase classes in OOP namespaced code).
+            WordPress standard expects class-filename.php, but this plugin uses
+            PSR-4-style autoloading with PascalCase filenames. Excluded to avoid
+            renaming all files and breaking require_once paths.
+        -->
+        <exclude name="WordPress.Files.FileName"/>
+    </rule>
+
+    <!-- Target PHP 8.0+ -->
+    <config name="minimum_supported_wp_version" value="6.0"/>
+    <config name="testVersion" value="8.0-"/>
+</ruleset>

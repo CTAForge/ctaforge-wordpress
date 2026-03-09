@@ -22,19 +22,29 @@ use WP_Error;
  */
 class Client {
 
-	/** @var string */
+	/**
+	 * CTAForge API key (ctaf_…).
+	 *
+	 * @var string
+	 */
 	private string $api_key;
 
-	/** @var string GraphQL endpoint URL. */
+	/**
+	 * GraphQL endpoint URL.
+	 *
+	 * @var string
+	 */
 	private string $endpoint;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $api_key  CTAForge API key (ctaf_…).
 	 * @param string $endpoint Optional: override the GraphQL endpoint.
 	 */
 	public function __construct( string $api_key, string $endpoint = '' ) {
 		$this->api_key  = $api_key;
-		$this->endpoint = $endpoint ?: CTAFORGE_API_DEFAULT;
+		$this->endpoint = '' !== $endpoint ? $endpoint : CTAFORGE_API_DEFAULT;
 	}
 
 	/**
@@ -44,11 +54,13 @@ class Client {
 	 * @param  array  $variables Variables map.
 	 * @return array|WP_Error    Decoded `data` key on success, WP_Error on failure.
 	 */
-	public function query( string $query, array $variables = [] ): array|WP_Error {
-		$body = wp_json_encode( [
-			'query'     => $query,
-			'variables' => $variables,
-		] );
+	public function query( string $query, array $variables = array() ): array|WP_Error {
+		$body = wp_json_encode(
+			array(
+				'query'     => $query,
+				'variables' => $variables,
+			)
+		);
 
 		if ( false === $body ) {
 			return new WP_Error( 'ctaforge_encode', __( 'Failed to encode request body.', 'ctaforge' ) );
@@ -56,15 +68,15 @@ class Client {
 
 		$response = wp_remote_post(
 			$this->endpoint,
-			[
-				'headers' => [
+			array(
+				'headers' => array(
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $this->api_key,
 					'X-Source'      => 'ctaforge-wordpress/' . CTAFORGE_VERSION,
-				],
+				),
 				'body'    => $body,
 				'timeout' => 15,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -91,7 +103,7 @@ class Client {
 			return new WP_Error( 'ctaforge_api', $message, $data['errors'] );
 		}
 
-		return $data['data'] ?? [];
+		return $data['data'] ?? array();
 	}
 
 	// ─── Audience helpers ────────────────────────────────────────────────────────
@@ -107,7 +119,7 @@ class Client {
 	 * @param  array  $fields   Optional: firstName, lastName, tags[], customFields{}.
 	 * @return array|WP_Error   { id, email, status, created } on success.
 	 */
-	public function subscribe( string $email, string $list_id, array $fields = [] ): array|WP_Error {
+	public function subscribe( string $email, string $list_id, array $fields = array() ): array|WP_Error {
 		$mutation = '
 			mutation UpsertContact($input: UpsertContactInput!) {
 				upsertContact(input: $input) {
@@ -120,21 +132,21 @@ class Client {
 		';
 
 		$variables = array_merge(
-			[
+			array(
 				'email'  => $email,
 				'listId' => $list_id,
 				'source' => 'wordpress',
-			],
+			),
 			$fields
 		);
 
-		$result = $this->query( $mutation, [ 'input' => $variables ] );
+		$result = $this->query( $mutation, array( 'input' => $variables ) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		return $result['upsertContact'] ?? [];
+		return $result['upsertContact'] ?? array();
 	}
 
 	/**
@@ -153,15 +165,15 @@ class Client {
 	 * @param  string        $email       Contact email address.
 	 * @param  string        $event_type  Event type slug.
 	 * @param  array         $properties  Arbitrary event properties (key-value).
-	 * @param  string        $source      Source system (defaults to 'wordpress').
+	 * @param  string        $source      Source system (defaults to 'WordPress').
 	 * @param  DateTime|null $occurred_at Optional; defaults to now.
 	 * @return array|WP_Error             { id, contactEmail, eventType, occurredAt } on success.
 	 */
 	public function track_event(
 		string $email,
 		string $event_type,
-		array $properties = [],
-		string $source = 'wordpress',
+		array $properties = array(),
+		string $source = 'WordPress',
 		?\DateTime $occurred_at = null
 	): array|WP_Error {
 		$mutation = '
@@ -177,24 +189,24 @@ class Client {
 			}
 		';
 
-		$variables = [
+		$variables = array(
 			'contactEmail' => $email,
 			'eventType'    => $event_type,
 			'source'       => $source,
 			'properties'   => empty( $properties ) ? new \stdClass() : $properties,
-		];
+		);
 
 		if ( null !== $occurred_at ) {
 			$variables['occurredAt'] = $occurred_at->format( \DateTime::RFC3339 );
 		}
 
-		$result = $this->query( $mutation, [ 'input' => $variables ] );
+		$result = $this->query( $mutation, array( 'input' => $variables ) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		return $result['trackContactEvent'] ?? [];
+		return $result['trackContactEvent'] ?? array();
 	}
 
 	/**
@@ -220,7 +232,7 @@ class Client {
 		}
 
 		return array_column(
-			array_column( $result['lists']['edges'] ?? [], 'node' ),
+			array_column( $result['lists']['edges'] ?? array(), 'node' ),
 			null
 		);
 	}
@@ -229,10 +241,10 @@ class Client {
 	 * Returns a singleton Client configured from plugin settings.
 	 */
 	public static function make(): self {
-		$settings = get_option( 'ctaforge_settings', [] );
+		$settings = get_option( 'ctaforge_settings', array() );
 		return new self(
-			$settings['api_key']  ?? '',
-			$settings['api_url']  ?? CTAFORGE_API_DEFAULT
+			$settings['api_key'] ?? '',
+			$settings['api_url'] ?? CTAFORGE_API_DEFAULT
 		);
 	}
 }

@@ -15,14 +15,17 @@ class Settings {
 	/** Option key used to store all plugin settings. */
 	const OPTION_KEY = 'ctaforge_settings';
 
+	/**
+	 * Constructor — registers WordPress hooks.
+	 */
 	public function __construct() {
-		add_action( 'admin_init', [ $this, 'register_settings' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		// Test Connection AJAX — authenticated (admin only, server-side only).
 		// The API key never travels from the server to the browser;
 		// the test is executed entirely in PHP and only the result is returned.
-		add_action( 'wp_ajax_ctaforge_test_connection', [ $this, 'handle_test_connection' ] );
+		add_action( 'wp_ajax_ctaforge_test_connection', array( $this, 'handle_test_connection' ) );
 	}
 
 	/**
@@ -32,7 +35,7 @@ class Settings {
 		register_setting(
 			'ctaforge_settings_group',
 			self::OPTION_KEY,
-			[ 'sanitize_callback' => [ $this, 'sanitize' ] ]
+			array( 'sanitize_callback' => array( $this, 'sanitize' ) )
 		);
 
 		// ── Section: Connection ───────────────────────────────────────────────
@@ -48,7 +51,7 @@ class Settings {
 		add_settings_field(
 			'api_key',
 			__( 'API Key', 'ctaforge' ),
-			[ $this, 'field_api_key' ],
+			array( $this, 'field_api_key' ),
 			'ctaforge',
 			'ctaforge_connection'
 		);
@@ -56,7 +59,7 @@ class Settings {
 		add_settings_field(
 			'api_url',
 			__( 'API Endpoint', 'ctaforge' ),
-			[ $this, 'field_api_url' ],
+			array( $this, 'field_api_url' ),
 			'ctaforge',
 			'ctaforge_connection'
 		);
@@ -74,7 +77,7 @@ class Settings {
 		add_settings_field(
 			'default_list',
 			__( 'Default List', 'ctaforge' ),
-			[ $this, 'field_default_list' ],
+			array( $this, 'field_default_list' ),
 			'ctaforge',
 			'ctaforge_defaults'
 		);
@@ -82,7 +85,7 @@ class Settings {
 		add_settings_field(
 			'sync_users',
 			__( 'Sync WordPress Users', 'ctaforge' ),
-			[ $this, 'field_sync_users' ],
+			array( $this, 'field_sync_users' ),
 			'ctaforge',
 			'ctaforge_defaults'
 		);
@@ -90,7 +93,7 @@ class Settings {
 
 	/** Renders the API key input. */
 	public function field_api_key(): void {
-		$settings       = get_option( self::OPTION_KEY, [] );
+		$settings       = get_option( self::OPTION_KEY, array() );
 		$value          = $settings['api_key'] ?? '';
 		$integration_id = $settings['integration_id'] ?? '';
 		?>
@@ -119,7 +122,7 @@ class Settings {
 
 	/** Renders the API endpoint input. */
 	public function field_api_url(): void {
-		$settings = get_option( self::OPTION_KEY, [] );
+		$settings = get_option( self::OPTION_KEY, array() );
 		$value    = $settings['api_url'] ?? CTAFORGE_API_DEFAULT;
 		?>
 		<input
@@ -142,8 +145,8 @@ class Settings {
 
 	/** Renders the default list selector. */
 	public function field_default_list(): void {
-		$settings    = get_option( self::OPTION_KEY, [] );
-		$api_key     = $settings['api_key'] ?? '';
+		$settings     = get_option( self::OPTION_KEY, array() );
+		$api_key      = $settings['api_key'] ?? '';
 		$default_list = $settings['default_list'] ?? '';
 
 		if ( empty( $api_key ) ) {
@@ -175,7 +178,7 @@ class Settings {
 
 	/** Renders the sync users toggle. */
 	public function field_sync_users(): void {
-		$settings   = get_option( self::OPTION_KEY, [] );
+		$settings   = get_option( self::OPTION_KEY, array() );
 		$sync_users = $settings['sync_users'] ?? '0';
 		?>
 		<label>
@@ -197,15 +200,15 @@ class Settings {
 	 * @return array        Sanitized settings.
 	 */
 	public function sanitize( array $input ): array {
-		// Preserve integration_id if already set (not user-editable directly)
-		$existing = get_option( self::OPTION_KEY, [] );
-		return [
+		// Preserve integration_id if already set (not user-editable directly).
+		$existing = get_option( self::OPTION_KEY, array() );
+		return array(
 			'api_key'        => sanitize_text_field( $input['api_key'] ?? '' ),
-			'api_url'        => esc_url_raw( $input['api_url'] ?? CTAFORGE_API_DEFAULT ) ?: CTAFORGE_API_DEFAULT,
+			'api_url'        => ( '' !== esc_url_raw( $input['api_url'] ?? CTAFORGE_API_DEFAULT ) ? esc_url_raw( $input['api_url'] ?? CTAFORGE_API_DEFAULT ) : CTAFORGE_API_DEFAULT ),
 			'default_list'   => sanitize_text_field( $input['default_list'] ?? '' ),
 			'sync_users'     => ( '1' === ( $input['sync_users'] ?? '0' ) ) ? '1' : '0',
 			'integration_id' => sanitize_text_field( $input['integration_id'] ?? $existing['integration_id'] ?? '' ),
-		];
+		);
 	}
 
 	/**
@@ -216,7 +219,7 @@ class Settings {
 	 */
 	private function get_capabilities(): array {
 		global $wp_version;
-		return [
+		return array(
 			'has_woocommerce' => class_exists( 'WooCommerce' ),
 			'wc_version'      => class_exists( 'WooCommerce' ) ? WC()->version : null,
 			'wp_version'      => $wp_version,
@@ -225,7 +228,7 @@ class Settings {
 			'site_name'       => get_bloginfo( 'name' ),
 			'locale'          => get_locale(),
 			'multisite'       => is_multisite(),
-		];
+		);
 	}
 
 	/**
@@ -247,22 +250,22 @@ class Settings {
 
 		// 2. Capability gate — only admins can test the connection.
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'ctaforge' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'ctaforge' ) ), 403 );
 		}
 
 		// 3. Read the API key from wp_options (server-side only — never from $_POST).
-		//    This means even if someone forges the AJAX request, they cannot
-		//    substitute a different key to probe the API.
-		$settings = get_option( self::OPTION_KEY, [] );
+		// This means even if someone forges the AJAX request, they cannot
+		// substitute a different key to probe the API.
+		$settings = get_option( self::OPTION_KEY, array() );
 		$api_key  = $settings['api_key'] ?? '';
 		$api_url  = $settings['api_url'] ?? CTAFORGE_API_DEFAULT;
 
 		if ( empty( $api_key ) ) {
-			wp_send_json_error( [ 'message' => __( 'No API key configured. Save your settings first.', 'ctaforge' ) ], 422 );
+			wp_send_json_error( array( 'message' => __( 'No API key configured. Save your settings first.', 'ctaforge' ) ), 422 );
 		}
 
 		// 4. Execute a lightweight introspection query to validate the key.
-		//    Uses the same Client that all API calls go through.
+		// Uses the same Client that all API calls go through.
 		$client = new \CTAForge\Api\Client( $api_key, $api_url );
 		$result = $client->query(
 			'query Ping { me { id email } }',
@@ -270,14 +273,14 @@ class Settings {
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error(
-				[ 'message' => $result->get_error_message() ],
+				array( 'message' => $result->get_error_message() ),
 				401
 			);
 		}
 
 		// 5. Report capabilities so CTAForge dashboard can show relevant data.
-		$settings        = get_option( self::OPTION_KEY, [] );
-		$integration_id  = $settings['integration_id'] ?? '';
+		$settings       = get_option( self::OPTION_KEY, array() );
+		$integration_id = $settings['integration_id'] ?? '';
 
 		if ( ! empty( $integration_id ) ) {
 			$client->query(
@@ -285,21 +288,23 @@ class Settings {
 				mutation ReportCapabilities($input: ReportCapabilitiesInput!) {
 					reportCapabilities(input: $input) { id status }
 				}',
-				[
-					'input' => [
-						'integrationId'  => $integration_id,
-						'capabilities'   => $this->get_capabilities(),
-						'pluginVersion'  => CTAFORGE_VERSION,
-					],
-				]
+				array(
+					'input' => array(
+						'integrationId' => $integration_id,
+						'capabilities'  => $this->get_capabilities(),
+						'pluginVersion' => CTAFORGE_VERSION,
+					),
+				)
 			);
 		}
 
 		// 6. Return only the tenant/user info (no key echoed back).
-		wp_send_json_success( [
-			'message' => __( 'Connection successful!', 'ctaforge' ),
-			'user'    => $result['me'] ?? null,
-		] );
+		wp_send_json_success(
+			array(
+				'message' => __( 'Connection successful!', 'ctaforge' ),
+				'user'    => $result['me'] ?? null,
+			)
+		);
 	}
 
 	/**
@@ -336,23 +341,27 @@ class Settings {
 		wp_enqueue_script(
 			'ctaforge-admin',
 			CTAFORGE_PLUGIN_URL . 'assets/js/admin.js',
-			[ 'jquery' ],
+			array( 'jquery' ),
 			CTAFORGE_VERSION,
 			true
 		);
 
-		wp_localize_script( 'ctaforge-admin', 'ctaforgeAdmin', [
-			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			// Nonce bound to current user session (CSRF protection).
-			// The API key is NOT included here — it stays server-side.
-			'nonce'   => wp_create_nonce( 'ctaforge_test_connection' ),
-			'i18n'    => [
-				'testing'    => __( 'Testing…', 'ctaforge' ),
-				'testBtn'    => __( 'Test Connection', 'ctaforge' ),
-				'connected'  => __( '✅ Connected', 'ctaforge' ),
-				'error'      => __( '❌ Connection failed', 'ctaforge' ),
-				'saveFirst'  => __( '⚠️ Save your settings before testing.', 'ctaforge' ),
-			],
-		] );
+		wp_localize_script(
+			'ctaforge-admin',
+			'ctaforgeAdmin',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				// Nonce bound to current user session (CSRF protection).
+				// The API key is NOT included here — it stays server-side.
+				'nonce'   => wp_create_nonce( 'ctaforge_test_connection' ),
+				'i18n'    => array(
+					'testing'   => __( 'Testing…', 'ctaforge' ),
+					'testBtn'   => __( 'Test Connection', 'ctaforge' ),
+					'connected' => __( '✅ Connected', 'ctaforge' ),
+					'error'     => __( '❌ Connection failed', 'ctaforge' ),
+					'saveFirst' => __( '⚠️ Save your settings before testing.', 'ctaforge' ),
+				),
+			)
+		);
 	}
 }

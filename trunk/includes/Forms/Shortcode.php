@@ -16,39 +16,42 @@ namespace CTAForge\Forms;
  */
 class Shortcode {
 
+	/**
+	 * Constructor — registers WordPress hooks.
+	 */
 	public function __construct() {
-		add_shortcode( 'ctaforge_form', [ $this, 'render' ] );
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-		add_action( 'wp_ajax_ctaforge_subscribe', [ $this, 'handle_ajax' ] );
-		add_action( 'wp_ajax_nopriv_ctaforge_subscribe', [ $this, 'handle_ajax' ] );
+		add_shortcode( 'ctaforge_form', array( $this, 'render' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_ajax_ctaforge_subscribe', array( $this, 'handle_ajax' ) );
+		add_action( 'wp_ajax_nopriv_ctaforge_subscribe', array( $this, 'handle_ajax' ) );
 	}
 
 	/**
 	 * Renders the signup form HTML.
 	 *
-	 * @param  array  $atts Shortcode attributes.
+	 * @param  array $atts Shortcode attributes.
 	 * @return string       HTML output.
 	 */
-	public function render( array|string $atts ): string {
+	public function render( array $atts ): string {
 		$atts = shortcode_atts(
-			[
-				'list_id'      => '',
-				'title'        => __( 'Subscribe to our newsletter', 'ctaforge' ),
-				'description'  => '',
-				'button'       => __( 'Subscribe', 'ctaforge' ),
-				'placeholder'  => __( 'Your email address', 'ctaforge' ),
-				'fields'       => '',        // comma-separated: first_name, last_name
-				'success'      => __( 'Thank you for subscribing! 🎉', 'ctaforge' ),
-				'error'        => __( 'Something went wrong. Please try again.', 'ctaforge' ),
-				'class'        => '',
-			],
+			array(
+				'list_id'     => '',
+				'title'       => __( 'Subscribe to our newsletter', 'ctaforge' ),
+				'description' => '',
+				'button'      => __( 'Subscribe', 'ctaforge' ),
+				'placeholder' => __( 'Your email address', 'ctaforge' ),
+				'fields'      => '',        // Comma-separated extra fields: first_name, last_name.
+				'success'     => __( 'Thank you for subscribing! 🎉', 'ctaforge' ),
+				'error'       => __( 'Something went wrong. Please try again.', 'ctaforge' ),
+				'class'       => '',
+			),
 			$atts,
 			'ctaforge_form'
 		);
 
 		// Resolve list_id: attribute → plugin default.
-		$settings = get_option( 'ctaforge_settings', [] );
-		$list_id  = $atts['list_id'] ?: ( $settings['default_list'] ?? '' );
+		$settings = get_option( 'ctaforge_settings', array() );
+		$list_id  = '' !== $atts['list_id'] ? $atts['list_id'] : ( $settings['default_list'] ?? '' );
 
 		if ( empty( $list_id ) ) {
 			if ( current_user_can( 'manage_options' ) ) {
@@ -153,14 +156,14 @@ class Shortcode {
 		$last_name  = sanitize_text_field( wp_unslash( $_POST['last_name'] ?? '' ) );
 
 		if ( ! is_email( $email ) ) {
-			wp_send_json_error( [ 'message' => __( 'Please enter a valid email address.', 'ctaforge' ) ], 422 );
+			wp_send_json_error( array( 'message' => __( 'Please enter a valid email address.', 'ctaforge' ) ), 422 );
 		}
 
 		if ( empty( $list_id ) ) {
-			wp_send_json_error( [ 'message' => __( 'No list configured.', 'ctaforge' ) ], 400 );
+			wp_send_json_error( array( 'message' => __( 'No list configured.', 'ctaforge' ) ), 400 );
 		}
 
-		$fields = [];
+		$fields = array();
 		if ( $first_name ) {
 			$fields['firstName'] = $first_name;
 		}
@@ -172,7 +175,7 @@ class Shortcode {
 		$result = $client->subscribe( $email, $list_id, $fields );
 
 		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( [ 'message' => $result->get_error_message() ], 500 );
+			wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
 		}
 
 		// Track the form_submitted event so the activity appears
@@ -180,15 +183,15 @@ class Shortcode {
 		$client->track_event(
 			$email,
 			'form_submitted',
-			[
+			array(
 				'list_id'  => $list_id,
-				'page_url' => wp_get_referer() ?: '',
+				'page_url' => ( false !== wp_get_referer() ? wp_get_referer() : '' ),
 				'source'   => 'shortcode',
-			]
+			)
 		);
 		// Ignore track_event errors — subscription already succeeded.
 
-		wp_send_json_success( [ 'contact' => $result ] );
+		wp_send_json_success( array( 'contact' => $result ) );
 	}
 
 	/**
@@ -198,14 +201,14 @@ class Shortcode {
 		wp_enqueue_style(
 			'ctaforge-form',
 			CTAFORGE_PLUGIN_URL . 'assets/css/form.css',
-			[],
+			array(),
 			CTAFORGE_VERSION
 		);
 
 		wp_enqueue_script(
 			'ctaforge-form',
 			CTAFORGE_PLUGIN_URL . 'assets/js/form.js',
-			[ 'jquery' ],
+			array( 'jquery' ),
 			CTAFORGE_VERSION,
 			true
 		);
@@ -213,10 +216,10 @@ class Shortcode {
 		wp_localize_script(
 			'ctaforge-form',
 			'ctaforgeAjax',
-			[
+			array(
 				'url'   => admin_url( 'admin-ajax.php' ),
 				'nonce' => wp_create_nonce( 'ctaforge_subscribe' ),
-			]
+			)
 		);
 	}
 }

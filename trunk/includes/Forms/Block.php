@@ -15,8 +15,11 @@ namespace CTAForge\Forms;
  */
 class Block {
 
+	/**
+	 * Constructor — registers WordPress hooks.
+	 */
 	public function __construct() {
-		add_action( 'init', [ $this, 'register_block' ] );
+		add_action( 'init', array( $this, 'register_block' ) );
 	}
 
 	/**
@@ -29,21 +32,42 @@ class Block {
 
 		register_block_type(
 			'ctaforge/signup-form',
-			[
+			array(
 				'editor_script'   => 'ctaforge-block-editor',
 				'editor_style'    => 'ctaforge-block-editor-style',
 				'style'           => 'ctaforge-form',
-				'attributes'      => [
-					'listId'      => [ 'type' => 'string', 'default' => '' ],
-					'title'       => [ 'type' => 'string', 'default' => 'Subscribe to our newsletter' ],
-					'description' => [ 'type' => 'string', 'default' => '' ],
-					'button'      => [ 'type' => 'string', 'default' => 'Subscribe' ],
-					'placeholder' => [ 'type' => 'string', 'default' => 'Your email address' ],
-					'fields'      => [ 'type' => 'string', 'default' => '' ],
-					'className'   => [ 'type' => 'string', 'default' => '' ],
-				],
-				'render_callback' => [ $this, 'render' ],
-			]
+				'attributes'      => array(
+					'listId'      => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'title'       => array(
+						'type'    => 'string',
+						'default' => 'Subscribe to our newsletter',
+					),
+					'description' => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'button'      => array(
+						'type'    => 'string',
+						'default' => 'Subscribe',
+					),
+					'placeholder' => array(
+						'type'    => 'string',
+						'default' => 'Your email address',
+					),
+					'fields'      => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+					'className'   => array(
+						'type'    => 'string',
+						'default' => '',
+					),
+				),
+				'render_callback' => array( $this, 'render' ),
+			)
 		);
 
 		$this->register_editor_script();
@@ -52,22 +76,24 @@ class Block {
 	/**
 	 * Server-side render callback — delegates to the Shortcode renderer.
 	 *
-	 * @param  array  $atts Block attributes.
+	 * @param  array $atts Block attributes.
 	 * @return string       HTML output.
 	 */
 	public function render( array $atts ): string {
 		$shortcode = new Shortcode();
-		return $shortcode->render( [
-			'list_id'     => $atts['listId']      ?? '',
-			'title'       => $atts['title']       ?? '',
-			'description' => $atts['description'] ?? '',
-			'button'      => $atts['button']      ?? 'Subscribe',
-			'placeholder' => $atts['placeholder'] ?? 'Your email address',
-			'fields'      => $atts['fields']      ?? '',
-			'class'       => $atts['className']   ?? '',
-			'success'     => __( 'Thank you for subscribing! 🎉', 'ctaforge' ),
-			'error'       => __( 'Something went wrong. Please try again.', 'ctaforge' ),
-		] );
+		return $shortcode->render(
+			array(
+				'list_id'     => $atts['listId'] ?? '',
+				'title'       => $atts['title'] ?? '',
+				'description' => $atts['description'] ?? '',
+				'button'      => $atts['button'] ?? 'Subscribe',
+				'placeholder' => $atts['placeholder'] ?? 'Your email address',
+				'fields'      => $atts['fields'] ?? '',
+				'class'       => $atts['className'] ?? '',
+				'success'     => __( 'Thank you for subscribing! 🎉', 'ctaforge' ),
+				'error'       => __( 'Something went wrong. Please try again.', 'ctaforge' ),
+			)
+		);
 	}
 
 	/**
@@ -77,7 +103,10 @@ class Block {
 		$asset_file = CTAFORGE_PLUGIN_DIR . 'assets/js/block/index.asset.php';
 		$asset      = file_exists( $asset_file )
 			? require $asset_file
-			: [ 'dependencies' => [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components' ], 'version' => CTAFORGE_VERSION ];
+			: array(
+				'dependencies' => array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components' ),
+				'version'      => CTAFORGE_VERSION,
+			);
 
 		wp_register_script(
 			'ctaforge-block-editor',
@@ -90,7 +119,7 @@ class Block {
 		wp_register_style(
 			'ctaforge-block-editor-style',
 			CTAFORGE_PLUGIN_URL . 'assets/css/form.css',
-			[],
+			array(),
 			CTAFORGE_VERSION
 		);
 	}

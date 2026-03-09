@@ -20,3 +20,4 @@ Thumbs.db
 
 # Composer lock (not committed for plugins — only for apps)
 trunk/composer.lock
+vendor/

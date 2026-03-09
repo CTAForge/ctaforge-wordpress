@@ -18,11 +18,14 @@ class Installer {
 	 */
 	public static function activate(): void {
 		if ( ! get_option( 'ctaforge_settings' ) ) {
-			update_option( 'ctaforge_settings', [
-				'api_key'     => '',
-				'api_url'     => CTAFORGE_API_DEFAULT,
-				'default_list' => '',
-			] );
+			update_option(
+				'ctaforge_settings',
+				array(
+					'api_key'      => '',
+					'api_url'      => CTAFORGE_API_DEFAULT,
+					'default_list' => '',
+				)
+			);
 		}
 
 		// Flush rewrite rules so shortcodes/pages are available immediately.
